@@ -3,6 +3,7 @@ from surprise import accuracy
 from surprise import SlopeOne
 from surprise import SVD
 from surprise import KNNBasic
+from surprise import CoClustering
 
 
 def baseline(trainset, testset): 
@@ -46,9 +47,6 @@ def user_knn( min_support=10, k=40):
     model = KNNBasic(k,sim_options=model_parameters)
     return model
 
-def co_clustering(trainset, testset, fullset, labels, n_clstr_usr=3, n_clstr_mv=3):
+def co_clustering( n_clstr_usr=3, n_clstr_mv=3):
     model = CoClustering(n_cltr_u=n_clstr_usr, n_cltr_i=n_clstr_mv)
-    pred_train = model.fit_transform(trainset)
-    pred_test = model.transform(testset)
-    rmse = accuracy.rmse(pred_test)
-    return pred_train, pred_test, rmse
+    return model
