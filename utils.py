@@ -1,4 +1,5 @@
 import csv
+import numpy as np 
 
 def read_txt(path):
     """read text file from path."""
@@ -69,4 +70,51 @@ def predict_on_model(algo):
         pred = algo.predict(uid,iid)
 
         preds.append(int(round(pred.est)))
+    return ids, preds
+
+def predict_on_models(models, weights):
+    
+    zippedMW=list(zip(models,weights))
+    data=read_txt("data/sample_submission.csv")
+    test_indices=predict_on_model_line(data[1:])
+
+    
+    preds=[]
+    ids=[]
+    for i,j in test_indices:
+        ids.append("r{0}_c{1}".format(i+1,j+1))
+        uid= j
+        iid= i
+        pred=0
+        for m, w in zippedMW:
+#             print("est:",m.predict(uid,iid).est)
+#             print("w:",w)
+            pred = pred+m.predict(uid,iid).est*w
+#         print("---Res:",pred)
+
+        preds.append(int(round(pred)))
+    return ids, preds
+def predict_on_models2(models, weights):
+    
+    data=read_txt("data/sample_submission.csv")
+    test_indices=predict_on_model_line(data[1:])
+
+    preds=[]
+    ids=[]
+    for i,j in test_indices:
+        ids.append("r{0}_c{1}".format(i+1,j+1))
+        uid= j
+        iid= i
+        pred_list=[]
+        
+        for wclass in weights:
+            zippedMW=list(zip(models,wclass))
+            pred = 0
+            for m,w in zippedMW:
+                pred = pred+m.predict(uid,iid).est*w
+                pred = np.exp(pred) / (1 + np.exp(pred) )
+               
+            pred_list.append(pred) 
+        print(pred_list)
+        preds.append(np.argmax(np.array(pred_list))+1)
     return ids, preds

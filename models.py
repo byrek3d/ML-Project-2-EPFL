@@ -28,7 +28,7 @@ def SVD(trainset,testset,n_factors=20, n_epochs=40, lr_all=0.005, reg_all=0.02):
     rmse = accuracy.rmse(pred_test)
     return pred_train, pred_test, rmse
 
-def movie_knn( min_support=10, k=40):
+def movie_knn( min_support=10, k=60):
     model_parameters = {
       'name': 'pearson',
       'user_based': False,
@@ -38,7 +38,7 @@ def movie_knn( min_support=10, k=40):
     return model
 
     
-def user_knn( min_support=10, k=40):
+def user_knn( min_support=10, k=300):
     model_parameters = {
       'name': 'pearson',
       'user_based': True,
