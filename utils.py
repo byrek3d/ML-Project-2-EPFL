@@ -57,6 +57,21 @@ def preprocess(data):
     df['user'], df['item'] = rs, cs 
     return df
     
+def read_file():
+   
+    data=read_txt("data/sample_submission.csv")
+    test_indices=predict_on_model_line(data[1:])
+
+    uid=[]
+    iid=[]
+    ids = []
+    
+    for i,j in test_indices:
+        ids.append("r{0}_c{1}".format(i+1,j+1))
+        uid.append(i)
+        iid.append(j)
+
+    return  ids,uid,iid
 
 def predict_on_model(algo):
     
@@ -141,7 +156,7 @@ def predict_on_models_xgb(models, xgb_model):
 
             model_preds.append(m.predict(uid,iid).est)# TODO: maybe round here
             
-        df_models = pd.DataFrame(np.reshape(model_preds, (1,-1)), columns = ['dfCC', 'dfBL', 'dfSVD', 'dfSVDpp', 'dfNMF', 'dfKNNMovie', 'dfKNNUser'] )
+        df_models = pd.DataFrame(np.reshape(model_preds, (1,-1)), columns = ['dfCC', 'dfBL', 'dfSVD', 'dfSVDpp', 'dfNMF', 'dfKNNMovie', 'dfKNNUser','dfSO'] )
         res=xgb_model.predict(df_models)
         preds.append(res)
         

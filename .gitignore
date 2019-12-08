@@ -1,4 +1,5 @@
 # ignore all logs
 *.csv
+*.pk
 .ipynb_checkpoints/
 __pycache__/
