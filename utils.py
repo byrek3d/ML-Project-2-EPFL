@@ -144,4 +144,6 @@ def predict_on_models_xgb(models, xgb_model):
         df_models = pd.DataFrame(np.reshape(model_preds, (1,-1)), columns = ['dfCC', 'dfBL', 'dfSVD', 'dfSVDpp', 'dfNMF', 'dfKNNMovie', 'dfKNNUser'] )
         res=xgb_model.predict(df_models)
         preds.append(res)
+        
+        ##TODO, may want to do the rounding here
     return ids, preds
