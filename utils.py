@@ -51,9 +51,10 @@ def preprocess(data):
     
     df = data.copy()
     # process removing the r or c and converting them into integers
-    rs = [int(r[0][1:]) for r in df.index.str.split('_')] #Take the r part and remove the letter
-    cs = [int(c[1][1:]) for c in df.index.str.split('_')] #Take the c part and remove the letter
-    df['user'], df['item'] = rs, cs
+    # Remove 1 from the received indexes as to have the matrices start at index 0
+    rs = [int(r[0][1:])-1 for r in df.index.str.split('_')] #Take the r part and remove the letter
+    cs = [int(c[1][1:])-1 for c in df.index.str.split('_')] #Take the c part and remove the letter
+    df['user'], df['item'] = rs, cs 
     return df
     
 
@@ -66,8 +67,8 @@ def predict_on_model(algo):
     ids=[]
     for i,j in test_indices:
         ids.append("r{0}_c{1}".format(i+1,j+1))
-        uid= j
-        iid= i
+        uid= i
+        iid= j
         pred = algo.predict(uid,iid)
 
         preds.append(int(round(pred.est)))
@@ -84,8 +85,8 @@ def predict_on_models(models, weights):
     ids=[]
     for i,j in test_indices:
         ids.append("r{0}_c{1}".format(i+1,j+1))
-        uid= j
-        iid= i
+        uid= i
+        iid= j
         pred=0
         for m, w in zippedMW:
 #             print("est:",m.predict(uid,iid).est)
@@ -104,8 +105,8 @@ def predict_on_models2(models, weights):
     ids=[]
     for i,j in test_indices:
         ids.append("r{0}_c{1}".format(i+1,j+1))
-        uid= j
-        iid= i
+        uid= i
+        iid= j
         pred_list=[]
         
         for wclass in weights:
@@ -133,8 +134,8 @@ def predict_on_models_xgb(models, xgb_model):
     ids=[]
     for i,j in test_indices:
         ids.append("r{0}_c{1}".format(i+1,j+1))
-        uid= j
-        iid= i
+        uid= i
+        iid= j
         model_preds=[]
         for m in models:
 
