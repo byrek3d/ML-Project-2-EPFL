@@ -138,7 +138,36 @@ def predict_on_models2(models, weights):
 
         preds.append(np.argmax(np.array(pred_list))+1)
     return ids, preds
-def predict_on_models_xgb(models, xgb_model):
+
+def predict_on_models_xgb_old(models, xgb_model):
+    
+    
+    data=read_txt("data/sample_submission.csv")
+    test_indices=predict_on_model_line(data[1:])
+
+    
+    preds=[]
+    ids=[]
+    acc=0
+    for i,j in test_indices:
+        acc=acc+1
+        if (acc%1000==0):
+            print(acc)
+        ids.append("r{0}_c{1}".format(i+1,j+1))
+        uid= i
+        iid= j
+        model_preds=[]
+        for m in models:
+
+            model_preds.append(m.predict(uid,iid).est)# TODO: maybe round here
+            
+        df_models = pd.DataFrame(np.reshape(model_preds, (1,-1)), columns = ['dfCC', 'dfBL', 'dfSVD', 'dfSVDpp', 'dfNMF', 'dfKNNMovie', 'dfKNNUser','dfSO'] )
+        res=xgb_model.predict(df_models)
+        preds.append(res)
+        
+        ##TODO, may want to do the rounding here
+    return ids, preds
+def predict_on_models_xgb(models, df_features , xgb_model):
     
     
     data=read_txt("data/sample_submission.csv")
@@ -155,9 +184,14 @@ def predict_on_models_xgb(models, xgb_model):
         for m in models:
 
             model_preds.append(m.predict(uid,iid).est)# TODO: maybe round here
+
             
         df_models = pd.DataFrame(np.reshape(model_preds, (1,-1)), columns = ['dfCC', 'dfBL', 'dfSVD', 'dfSVDpp', 'dfNMF', 'dfKNNMovie', 'dfKNNUser','dfSO'] )
-        res=xgb_model.predict(df_models)
+        
+        features_row = df_features[(df_features.User == uid) & (df_features.Movie == iid)].drop(['User','Movie'],axis = 1 )
+        
+        df_merged=pd.concat([df_models, features_row], axis=1)
+        res=xgb_model.predict(df_merged)
         preds.append(res)
         
         ##TODO, may want to do the rounding here
