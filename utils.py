@@ -80,7 +80,11 @@ def predict_on_model(algo):
 
     preds=[]
     ids=[]
+    acc=0
     for i,j in test_indices:
+        acc=acc+1
+        if (acc%100000==0):
+            print(acc)
         ids.append("r{0}_c{1}".format(i+1,j+1))
         uid= i
         iid= j
