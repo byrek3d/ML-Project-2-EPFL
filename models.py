@@ -28,22 +28,19 @@ def SVD(trainset,testset,n_factors=20, n_epochs=40, lr_all=0.005, reg_all=0.02):
     rmse = accuracy.rmse(pred_test)
     return pred_train, pred_test, rmse
 
-def movie_knn( min_support=10, k=60):
+def movie_knn( k=300):
     model_parameters = {
-      'name': 'pearson',
-      'user_based': False,
-      'min_support': min_support  #minimum number of common use/item to be compared. 
+      'name': 'pearson_baseline',
+      'user_based': False
     }
     model = KNNBasic(k,sim_options=model_parameters)
     return model
 
     
-def user_knn( min_support=10, k=300):
+def user_knn(  k=100):
     model_parameters = {
-      'name': 'pearson',
-      'user_based': True,
-      'min_support': min_support  #minimum number of common use/item to be compared. 
-    }
+      'name': 'pearson_baseline',
+      'user_based': True    }
     model = KNNBasic(k,sim_options=model_parameters)
     return model
 

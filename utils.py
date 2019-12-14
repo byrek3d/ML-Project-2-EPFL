@@ -102,7 +102,11 @@ def predict_on_models(models, weights):
     
     preds=[]
     ids=[]
+    acc=0
     for i,j in test_indices:
+        acc=acc+1
+        if (acc%10000==0):
+            print(acc)
         ids.append("r{0}_c{1}".format(i+1,j+1))
         uid= i
         iid= j
@@ -128,7 +132,11 @@ def predict_on_models2(models, weights):
         iid= j
         pred_list=[]
         
+        acc=0
         for wclass in weights:
+            acc=acc+1
+            if (acc%1000==0):
+                print(acc)
             zippedMW=list(zip(models,wclass))
             pred = 0
             for m,w in zippedMW:
@@ -138,7 +146,7 @@ def predict_on_models2(models, weights):
                 
             pred = np.exp(pred) / (1 + np.exp(pred) )   
             pred_list.append(pred) 
-        print(pred_list)
+#         print(pred_list)
 
         preds.append(np.argmax(np.array(pred_list))+1)
     return ids, preds
@@ -155,7 +163,7 @@ def predict_on_models_xgb_old(models, xgb_model):
     acc=0
     for i,j in test_indices:
         acc=acc+1
-        if (acc%1000==0):
+        if (acc%100000==0):
             print(acc)
         ids.append("r{0}_c{1}".format(i+1,j+1))
         uid= i
