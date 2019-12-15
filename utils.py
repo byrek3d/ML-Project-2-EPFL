@@ -9,7 +9,7 @@ def read_txt(path):
     
     
 def deal_line(line):
-     """
+    """
     Return the index of the row and column form a csv line, by also removing 1 (so that the indices start at 0
     ----------
     
@@ -18,12 +18,12 @@ def deal_line(line):
     Returns:
         The index of the row and column subtracted by 1
     """
-        pos, rating = line.split(',')
-        row, col = pos.split("_")
-        row = row.replace("r", "")
-        col = col.replace("c", "")
-        return int(row)-1, int(col)-1 #remove one to have same indices
-    
+    pos, rating = line.split(',')
+    row, col = pos.split("_")
+    row = row.replace("r", "")
+    col = col.replace("c", "")
+    return int(row)-1, int(col)-1 #remove one to have same indices
+
     
 def predict_on_model_line(data):
     """preprocessing the text data, conversion to numerical array format."""
@@ -33,7 +33,7 @@ def predict_on_model_line(data):
 
 
 def create_csv_submission(ids, y_pred, name):
-     """
+    """
     Create a csv with the format required by aicrowd
     ----------
     ids : list
@@ -54,7 +54,7 @@ def create_csv_submission(ids, y_pred, name):
             writer.writerow({'Id': r1,'Prediction': r2})
 
 def preprocess(data):
-     """
+    """
     Convert a dataframe of indices of the given aicrowd input format to simple row/column dataframe
     ----------
     
@@ -73,7 +73,7 @@ def preprocess(data):
     return df
     
 def read_file():
-     """
+    """
     Read the sample_submission.csv file and extract the information into 3 lists
     ----------
     
@@ -82,7 +82,7 @@ def read_file():
         A list containing the lines of the csv file, a list containing the rwo index and a list containing the column index
         
    """
-    data=read_txt("data/sample_submission.csv")
+    data=read_txt("data/sampleSubmission.csv")
     test_indices=predict_on_model_line(data[1:])
 
     uid=[]
@@ -96,6 +96,32 @@ def read_file():
 
     return  ids,uid,iid
 
+def pred_from_suprise_to_df(model_pred):
+    
+    list=[]
+    for pred in model_pred:
+        list.append(pred.est)
+    return pd.DataFrame(list)
+
+def trainset_from_surprise_to_df(trainset):
+    df_trainset=[]
+
+    for u,m,r in trainset.all_ratings():
+        df_trainset.append([u,m,r])
+
+    df_trainset = pd.DataFrame(df_trainset)
+    df_trainset = df_trainset.rename({0:'User',1:'Movie',2:'Rating'},axis =1)
+    
+    return df_trainset
+
+def stat_data(ratings):
+    """Compute the statistics result on raw rating data."""
+
+    num_items_per_user = np.array((ratings != 0).sum(axis=0)).flatten()
+    num_users_per_item = np.array((ratings != 0).sum(axis=1).T).flatten()
+
+    return num_items_per_user, num_users_per_item
+
 def predict_on_model(algo):
     """
     Use the provided model to predict on the user/movie indices present on the sample_submission.csv. The predictions are rounded up to the closest integer
@@ -108,7 +134,7 @@ def predict_on_model(algo):
         A list of (row/column) pairs and a list of the prediction in those indices
         
    """
-    data=read_txt("data/sample_submission.csv")
+    data=read_txt("data/sampleSubmission.csv")
     test_indices=predict_on_model_line(data[1:])
 
     preds=[]
@@ -140,7 +166,7 @@ def predict_on_models(models, weights):
         A list of (row/column) pairs and a list of the prediction in those indices
     """       
     zippedMW=list(zip(models,weights))
-    data=read_txt("data/sample_submission.csv")
+    data=read_txt("data/sampleSubmission.csv")
     test_indices=predict_on_model_line(data[1:])
 
     
@@ -177,7 +203,7 @@ def predict_on_models2(models, weights):
         A list of (row/column) pairs and a list of the prediction in those indices
     """
     
-    data=read_txt("data/sample_submission.csv")
+    data=read_txt("data/sampleSubmission.csv")
     test_indices=predict_on_model_line(data[1:])
 
     preds=[]
@@ -207,7 +233,7 @@ def predict_on_models2(models, weights):
         preds.append(np.argmax(np.array(pred_list))+1)
     return ids, preds
 
-def predict_on_models_xgb_old(models, xgb_model):
+def predict_on_models_only_xgb(models, xgb_model, mf_sgd_pair, mf_als_pair, bl_global, bl_user, bl_movie):
     """
     Use the provided models to predict on the user/movie indices present on the sample_submission.csv. The predictions are weighted using the provided xgboost model. The predictions are rounded up to the closest integer
     ----------
@@ -220,7 +246,7 @@ def predict_on_models_xgb_old(models, xgb_model):
         A list of (row/column) pairs and a list of the prediction in those indices
     """
     
-    data=read_txt("data/sample_submission.csv")
+    data=read_txt("data/sampleSubmission.csv")
     test_indices=predict_on_model_line(data[1:])
 
     
@@ -235,15 +261,38 @@ def predict_on_models_xgb_old(models, xgb_model):
         uid= i
         iid= j
         model_preds=[]
+        #Surprise models 
         for m in models:
 
             model_preds.append(m.predict(uid,iid).est)# TODO: maybe round here
-            
-        df_models = pd.DataFrame(np.reshape(model_preds, (1,-1)), columns = ['dfCC', 'dfSVDpp','dfKNNMovie', 'dfKNNUser'] )
-        res=xgb_model.predict(df_models)
-        preds.append(res)
         
-        ##TODO, may want to do the rounding here
+        #MFSGD
+        user_sgd, movie_sgd = mf_sgd_pair
+        user_data_sgd = user_sgd[:,i]  
+        movie_data_sgd = movie_sgd[:,j]
+        prediciton_sgd= movie_data_sgd @ user_data_sgd.T
+        model_preds.append(prediciton_sgd)
+        
+        #MFALS
+        user_als, movie_als = mf_sgd_pair
+        user_data_als = user_als[:,i]  
+        movie_data_als = movie_als[:,j]
+        prediciton_als= movie_data_als @ user_data_als.T
+        model_preds.append(prediciton_als)
+        
+        #baseline Global
+        model_preds.append(bl_global)
+        
+        #Baseline User
+        model_preds.append(bl_user[0,i])
+        
+        #Baseline Movie
+        model_preds.append(bl_movie[j,0])
+        
+        df_models = pd.DataFrame(np.reshape(model_preds, (1,-1)), columns = ['dfCC','dfBL','dfSVD','dfSVDpp','dfNMF','dfKNNMovie','dfKNNUser','dfSO','dfMFSGD','dfMFALS','dfBLGlobal','dfBLMovie','dfBLUser'] )
+        res=xgb_model.predict(df_models)
+        preds.append(int(round(res)))
+        
     return ids, preds
 
 
@@ -263,7 +312,7 @@ def predict_on_models_xgb(models, df_features , xgb_model):
     Returns:
         A list of (row/column) pairs and a list of the prediction in those indices
     """
-    data=read_txt("data/sample_submission.csv")
+    data=read_txt("data/sampleSubmission.csv")
     test_indices=predict_on_model_line(data[1:])
 
     
