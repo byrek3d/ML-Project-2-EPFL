@@ -152,7 +152,7 @@ def predict_on_model(algo):
         preds.append(int(round(pred.est)))
     return ids, preds
 
-def predict_on_models(models, weights):
+def predict_on_models(surprise_models, mf_sgd_pair, mf_als_pair, bl_global,bl_movie, bl_user,surprise_weights,models_weights):
     """
     Use the provided models to predict on the user/movie indices present on the sample_submission.csv and combine the result with the provided weights. The predictions are rounded up to the closest integer
     ----------
@@ -165,7 +165,7 @@ def predict_on_models(models, weights):
     Returns:
         A list of (row/column) pairs and a list of the prediction in those indices
     """       
-    zippedMW=list(zip(models,weights))
+    zippedMW=list(zip(surprise_models,surprise_weights))
     data=read_txt("data/sampleSubmission.csv")
     test_indices=predict_on_model_line(data[1:])
 
@@ -184,12 +184,38 @@ def predict_on_models(models, weights):
         for m, w in zippedMW:
 
             pred = pred+m.predict(uid,iid).est*w
-
-
-        preds.append(int(round(pred)))
+        
+        #MFSGD   
+        user_sgd, movie_sgd = mf_sgd_pair
+        user_data_sgd = user_sgd[:,i]  
+        movie_data_sgd = movie_sgd[:,j]
+        prediciton_sgd= movie_data_sgd @ user_data_sgd.T
+        pred = pred + prediciton_sgd* models_weights['MFSGD']
+        
+        #MFALS
+        user_als, movie_als = mf_sgd_pair
+        user_data_als = user_als[:,i]  
+        movie_data_als = movie_als[:,j]
+        prediciton_als= movie_data_als @ user_data_als.T
+        pred = pred + prediciton_als* models_weights['MFALS']
+        
+        #baseline Global
+        pred = pred + bl_global* models_weights['BLGlobal']
+        
+        #Baseline Movie
+        pred = pred + bl_movie[j,0]* models_weights['BLMovie']
+        
+        #Baseline User
+        pred = pred + bl_user[0,i]* models_weights['BLUser']
+        
+        pred = int(round(pred))
+        pred = max(pred,1)
+        pred = min(pred,5)
+        
+        preds.append(pred)
     return ids, preds
 
-def predict_on_models2(models, weights):
+def predict_on_models_logistic_nofeatures(surprise_models, mf_sgd_pair, mf_als_pair, bl_global,bl_movie, bl_user,weights):
     """
     Use the provided models to predict on the user/movie indices present on the sample_submission.csv and combine the result with the provided weights. The predictions are rounded up to the closest integer
     ----------
@@ -208,32 +234,62 @@ def predict_on_models2(models, weights):
 
     preds=[]
     ids=[]
+    acc=0
     for i,j in test_indices:
+        acc=acc+1
+        if (acc%10000==0):
+            print(acc)
         ids.append("r{0}_c{1}".format(i+1,j+1))
         uid= i
         iid= j
         pred_list=[]
         
         acc=0
+
+        #MFSGD   
+        user_sgd, movie_sgd = mf_sgd_pair
+        user_data_sgd = user_sgd[:,i]  
+        movie_data_sgd = movie_sgd[:,j]
+        prediciton_sgd= movie_data_sgd @ user_data_sgd.T
+
+        #MFALS
+        user_als, movie_als = mf_sgd_pair
+        user_data_als = user_als[:,i]  
+        movie_data_als = movie_als[:,j]
+        prediciton_als= movie_data_als @ user_data_als.T
+
+
         for wclass in weights:
             acc=acc+1
             if (acc%1000==0):
                 print(acc)
-            zippedMW=list(zip(models,wclass))
             pred = 0
-            for m,w in zippedMW:
-#                 print("m:",m)
-#                 print("w:",w)
-                pred = pred+m.predict(uid,iid).est*w
-                
+            for i in range(0,8):  #surprise models
+                m = surprise_models[i]
+                pred = pred+m.predict(uid,iid).est*wclass[i]
+            
+            #MFSGD   
+            pred = pred + prediciton_sgd* wclass[8]
+        
+            #MFALS
+            pred = pred + prediciton_als* wclass[9]
+        
+            #baseline Global
+            pred = pred + bl_global* wclass[10]
+        
+            #Baseline Movie
+            pred = pred + bl_movie[j,0]* wclass[11]
+        
+            #Baseline User
+            pred = pred + bl_user[0,i]* wclass[12]
+
             pred = np.exp(pred) / (1 + np.exp(pred) )   
             pred_list.append(pred) 
-#         print(pred_list)
 
         preds.append(np.argmax(np.array(pred_list))+1)
     return ids, preds
 
-def predict_on_models_only_xgb(models, xgb_model, mf_sgd_pair, mf_als_pair, bl_global, bl_user, bl_movie):
+def predict_on_models_only_xgb(models, mf_sgd_pair, mf_als_pair, bl_global,bl_movie,bl_user,xgb_model):
     """
     Use the provided models to predict on the user/movie indices present on the sample_submission.csv. The predictions are weighted using the provided xgboost model. The predictions are rounded up to the closest integer
     ----------
@@ -255,7 +311,7 @@ def predict_on_models_only_xgb(models, xgb_model, mf_sgd_pair, mf_als_pair, bl_g
     acc=0
     for i,j in test_indices:
         acc=acc+1
-        if (acc%100000==0):
+        if (acc%10000==0):
             print(acc)
         ids.append("r{0}_c{1}".format(i+1,j+1))
         uid= i
@@ -283,15 +339,15 @@ def predict_on_models_only_xgb(models, xgb_model, mf_sgd_pair, mf_als_pair, bl_g
         #baseline Global
         model_preds.append(bl_global)
         
-        #Baseline User
-        model_preds.append(bl_user[0,i])
-        
         #Baseline Movie
         model_preds.append(bl_movie[j,0])
         
+        #Baseline User
+        model_preds.append(bl_user[0,i])
+        
         df_models = pd.DataFrame(np.reshape(model_preds, (1,-1)), columns = ['dfCC','dfBL','dfSVD','dfSVDpp','dfNMF','dfKNNMovie','dfKNNUser','dfSO','dfMFSGD','dfMFALS','dfBLGlobal','dfBLMovie','dfBLUser'] )
         res=xgb_model.predict(df_models)
-        preds.append(int(round(res)))
+        preds.append(int(round(res[0])))
         
     return ids, preds
 
@@ -334,6 +390,8 @@ def predict_on_models_xgb(models, df_features , xgb_model):
         
         df_merged=pd.concat([df_models, features_row], axis=1)
         res=xgb_model.predict(df_merged)
+        
+
         preds.append(res)
         
         ##TODO, may want to do the rounding here
