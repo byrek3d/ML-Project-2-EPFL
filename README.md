@@ -1,6 +1,6 @@
-#CS433-Machine Learning Project 2
+# CS433-Machine Learning Project 2
 
-###Authors: Gerald Sula - Ridha Chahed - Walid Ben Naceur
+### Authors: Gerald Sula - Ridha Chahed - Walid Ben Naceur
 
 Prerequisites:
 We use some external libraries in this project which need to be installed manualy:
