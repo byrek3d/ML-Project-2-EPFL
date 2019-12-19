@@ -97,6 +97,16 @@ def read_file():
     return  ids,uid,iid
 
 def pred_from_suprise_to_df(model_pred):
+    """
+    Create a Dataframe starting from a Surprise data set containing only the prediction
+    ----------
+    
+   
+    Returns:
+        The Dataframe containing the prediction extracted from the input
+        
+   """
+
     
     list=[]
     for pred in model_pred:
@@ -104,6 +114,15 @@ def pred_from_suprise_to_df(model_pred):
     return pd.DataFrame(list)
 
 def trainset_from_surprise_to_df(trainset):
+    """
+    Create a Dataframe starting from a Surprise data set
+    ----------
+    
+   
+    Returns:
+        The Dataframe containing the 'User', 'Movie', 'Rating' columns extracted from the input
+        
+   """
     df_trainset=[]
 
     for u,m,r in trainset.all_ratings():
@@ -114,13 +133,6 @@ def trainset_from_surprise_to_df(trainset):
     
     return df_trainset
 
-def stat_data(ratings):
-    """Compute the statistics result on raw rating data."""
-
-    num_items_per_user = np.array((ratings != 0).sum(axis=0)).flatten()
-    num_users_per_item = np.array((ratings != 0).sum(axis=1).T).flatten()
-
-    return num_items_per_user, num_users_per_item
 
 def predict_on_model(algo):
     """
@@ -139,11 +151,9 @@ def predict_on_model(algo):
 
     preds=[]
     ids=[]
-    acc=0
+
     for i,j in test_indices:
-        acc=acc+1
-        if (acc%100000==0):
-            print(acc)
+
         ids.append("r{0}_c{1}".format(i+1,j+1))
         uid= i
         iid= j
@@ -152,7 +162,7 @@ def predict_on_model(algo):
         preds.append(int(round(pred.est)))
     return ids, preds
 
-def predict_on_models(surprise_models, mf_sgd_pair, mf_als_pair, bl_global,bl_movie, bl_user,surprise_weights,models_weights):
+def predict_on_models(surprise_models, mf_sgd_pair, mf_als_pair, bl_global,df_featured,global_average,surprise_weights,models_weights):
     """
     Use the provided models to predict on the user/movie indices present on the sample_submission.csv and combine the result with the provided weights. The predictions are rounded up to the closest integer
     ----------
@@ -202,11 +212,25 @@ def predict_on_models(surprise_models, mf_sgd_pair, mf_als_pair, bl_global,bl_mo
         #baseline Global
         pred = pred + bl_global* models_weights['BLGlobal']
         
-        #Baseline Movie
-        pred = pred + bl_movie[j,0]* models_weights['BLMovie']
+
+        #Features
         
-        #Baseline User
-        pred = pred + bl_user[0,i]* models_weights['BLUser']
+
+        udf=df_featured[(df_featured.User == uid)].drop(['User','Movie'],axis = 1 )
+        if(len(udf)>0):
+            userAvg = udf.values[0][0]
+        else:
+            userAvg=global_average
+        mdf=df_featured[(df_featured.Movie == iid)].drop(['User','Movie'],axis = 1 )
+        
+        if(len(mdf)>0):
+            movieAvg = mdf.values[0][1]
+        else:
+            movieAvg=global_average
+
+        pred = pred +userAvg* models_weights['User_Average']
+        pred = pred +movieAvg* models_weights['Movie_Average']
+        
         
         pred = int(round(pred))
         pred = max(pred,1)
@@ -215,7 +239,8 @@ def predict_on_models(surprise_models, mf_sgd_pair, mf_als_pair, bl_global,bl_mo
         preds.append(pred)
     return ids, preds
 
-def predict_on_models_logistic_nofeatures(surprise_models, mf_sgd_pair, mf_als_pair, bl_global,bl_movie, bl_user,weights):
+
+def predict_on_models2(models, weights):
     """
     Use the provided models to predict on the user/movie indices present on the sample_submission.csv and combine the result with the provided weights. The predictions are rounded up to the closest integer
     ----------
@@ -234,62 +259,32 @@ def predict_on_models_logistic_nofeatures(surprise_models, mf_sgd_pair, mf_als_p
 
     preds=[]
     ids=[]
-    acc=0
     for i,j in test_indices:
-        acc=acc+1
-        if (acc%10000==0):
-            print(acc)
         ids.append("r{0}_c{1}".format(i+1,j+1))
         uid= i
         iid= j
         pred_list=[]
         
         acc=0
-
-        #MFSGD   
-        user_sgd, movie_sgd = mf_sgd_pair
-        user_data_sgd = user_sgd[:,i]  
-        movie_data_sgd = movie_sgd[:,j]
-        prediciton_sgd= movie_data_sgd @ user_data_sgd.T
-
-        #MFALS
-        user_als, movie_als = mf_sgd_pair
-        user_data_als = user_als[:,i]  
-        movie_data_als = movie_als[:,j]
-        prediciton_als= movie_data_als @ user_data_als.T
-
-
         for wclass in weights:
             acc=acc+1
             if (acc%1000==0):
                 print(acc)
+            zippedMW=list(zip(models,wclass))
             pred = 0
-            for i in range(0,8):  #surprise models
-                m = surprise_models[i]
-                pred = pred+m.predict(uid,iid).est*wclass[i]
-            
-            #MFSGD   
-            pred = pred + prediciton_sgd* wclass[8]
-        
-            #MFALS
-            pred = pred + prediciton_als* wclass[9]
-        
-            #baseline Global
-            pred = pred + bl_global* wclass[10]
-        
-            #Baseline Movie
-            pred = pred + bl_movie[j,0]* wclass[11]
-        
-            #Baseline User
-            pred = pred + bl_user[0,i]* wclass[12]
-
+            for m,w in zippedMW:
+#                 print("m:",m)
+#                 print("w:",w)
+                pred = pred+m.predict(uid,iid).est*w
+                
             pred = np.exp(pred) / (1 + np.exp(pred) )   
             pred_list.append(pred) 
+#         print(pred_list)
 
         preds.append(np.argmax(np.array(pred_list))+1)
     return ids, preds
 
-def predict_on_models_only_xgb(models, mf_sgd_pair, mf_als_pair, bl_global,bl_movie,bl_user,xgb_model):
+def predict_on_models_only_xgb(models, xgb_model, mf_sgd_pair, mf_als_pair, bl_global, bl_user, bl_movie):
     """
     Use the provided models to predict on the user/movie indices present on the sample_submission.csv. The predictions are weighted using the provided xgboost model. The predictions are rounded up to the closest integer
     ----------
@@ -311,7 +306,7 @@ def predict_on_models_only_xgb(models, mf_sgd_pair, mf_als_pair, bl_global,bl_mo
     acc=0
     for i,j in test_indices:
         acc=acc+1
-        if (acc%10000==0):
+        if (acc%100000==0):
             print(acc)
         ids.append("r{0}_c{1}".format(i+1,j+1))
         uid= i
@@ -339,15 +334,15 @@ def predict_on_models_only_xgb(models, mf_sgd_pair, mf_als_pair, bl_global,bl_mo
         #baseline Global
         model_preds.append(bl_global)
         
-        #Baseline Movie
-        model_preds.append(bl_movie[j,0])
-        
         #Baseline User
         model_preds.append(bl_user[0,i])
         
+        #Baseline Movie
+        model_preds.append(bl_movie[j,0])
+        
         df_models = pd.DataFrame(np.reshape(model_preds, (1,-1)), columns = ['dfCC','dfBL','dfSVD','dfSVDpp','dfNMF','dfKNNMovie','dfKNNUser','dfSO','dfMFSGD','dfMFALS','dfBLGlobal','dfBLMovie','dfBLUser'] )
         res=xgb_model.predict(df_models)
-        preds.append(int(round(res[0])))
+        preds.append(int(round(res)))
         
     return ids, preds
 
@@ -390,9 +385,94 @@ def predict_on_models_xgb(models, df_features , xgb_model):
         
         df_merged=pd.concat([df_models, features_row], axis=1)
         res=xgb_model.predict(df_merged)
-        
-
         preds.append(res)
+        
+        ##TODO, may want to do the rounding here
+    return ids, preds
+
+def predict_on_all_models_and_features_xgb(xgb_model,models, mf_sgd_pair, mf_als_pair, bl_global, bl_movie,bl_user, df_features):
+    
+    """
+    Use the provided models and augmented features to predict on the user/movie indices present on the sample_submission.csv and combine the result with the provided weights. 
+    The predictions are computed in different ways depending on the model/feature.
+    The predictions are rounded up to the closest integer
+    ----------
+    xgb_model: xgboost
+       A xgboost ensemble model trained on the provided prediction models
+    models: list
+       List of Surprise models to be used in the prediction
+    mf_sgd_pair: list
+       A list of 2 elements containing the resulting matrices of Matrix factorization using SGD
+    mf_sals_pair: list
+       A list of 2 elements containing the resulting matrices of Matrix factorization using ALS
+    bl_global: float
+        The baseline global mean
+    bl_movie: list
+        The baseline Movie mean
+    bl_user: list
+        The baseline User mean
+    df_features: Dataframe
+        Dataframe containing additional features on the data 
+
+       
+    Returns:
+        A list of (row/column) pairs and a list of the prediction in those indices
+    """
+    data=read_txt("data/sampleSubmission.csv")
+    test_indices=predict_on_model_line(data[1:])
+
+    
+    preds=[]
+    ids=[]
+    acc=0
+    for i,j in test_indices:
+        acc=acc+1
+        if (acc%10000==0):
+            print(acc)
+        ids.append("r{0}_c{1}".format(i+1,j+1))
+        uid= i
+        iid= j
+        model_preds=[]
+        for m in models:
+
+            model_preds.append(m.predict(uid,iid).est)# TODO: maybe round here
+
+            
+
+        
+        #MFSGD
+        user_sgd, movie_sgd = mf_sgd_pair
+        user_data_sgd = user_sgd[:,i]  
+        movie_data_sgd = movie_sgd[:,j]
+        prediciton_sgd= movie_data_sgd @ user_data_sgd.T
+        model_preds.append(prediciton_sgd)
+        
+        #MFALS
+        user_als, movie_als = mf_sgd_pair
+        user_data_als = user_als[:,i]  
+        movie_data_als = movie_als[:,j]
+        prediciton_als= movie_data_als @ user_data_als.T
+        model_preds.append(prediciton_als)
+        
+        #baseline Global
+        model_preds.append(bl_global)
+        
+        
+        #Baseline Movie
+        model_preds.append(bl_movie[j,0])
+        
+        #Baseline User
+        model_preds.append(bl_user[0,i])
+        
+        #Concatenate the results on models
+        df_models = pd.DataFrame(np.reshape(model_preds, (1,-1)), columns = ['dfCC','dfBL','dfSVD','dfSVDpp','dfNMF','dfKNNMovie','dfKNNUser','dfSO','dfMFSGD','dfMFALS','dfBLGlobal','dfBLMovie','dfBLUser'] )
+        
+        #Predict on augmented features
+        features_row = df_features[(df_features.User == uid) & (df_features.Movie == iid)].drop(['User','Movie'],axis = 1 )
+        
+        df_merged=pd.concat([df_models, features_row], axis=1)
+        res=xgb_model.predict(df_merged)
+        preds.append(max(1,min(5,int(round(res[0])))))
         
         ##TODO, may want to do the rounding here
     return ids, preds

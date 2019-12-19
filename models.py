@@ -1,20 +1,24 @@
+# # In this file we define some models to use for the prediction that were not available in any libraries. 
+# #These are based on the lab 10 of the course.
+
 import numpy as np
 import scipy.sparse as sp
 from helpers import build_index_groups, calculate_mse
 import random, copy
 
-def split_data(ratings, num_items_per_user, num_users_per_item,
-               p_test=0.1):
+np.random.seed(988)
+
+def split_data(ratings, p_test=0.1):
     """split the ratings to training data and test data.
     Args:
-        min_num_ratings: 
-            all users and items we keep must have at least min_num_ratings per user and per item. 
+        ratings: 
+            the data to be split
+        p_test:
+            the percentage of data to be used for the test set
+    Returns:
+        Train set and test set
     """
-    # set seed
-    np.random.seed(988)
-    
 
-    
     num_rows, num_cols=ratings.shape
     train = sp.lil_matrix((num_rows, num_cols))
     test = sp.lil_matrix((num_rows, num_cols))
@@ -61,8 +65,16 @@ def compute_error(data, user_features, item_features, nz):
     
     return np.sqrt(mse / len(nz))
 
-def baseline_global_mean(train, test):
-    """baseline method: use the global mean."""
+def baseline_global_mean(train, test, verbose=False):
+    """Compute the baseline global mean of the train data
+    Args:
+        train: 
+            the data to be used as input
+        test:
+            the data to be used for measuring the rmse
+    Returns:
+        The global mean of the train data
+    """
     
     global_mean_train = train[train.nonzero()].mean()
     
@@ -72,12 +84,21 @@ def baseline_global_mean(train, test):
     
     rmse = np.sqrt( mse / test_nonzero_dense.shape[1] )
     
-    print("Baseline global RMSE on test: ", rmse[0,0])
+    if(verbose==True):
+        print("Baseline global RMSE on test: ", rmse[0,0])
     
     return global_mean_train
 
-def baseline_user_mean(train, test):
-    """baseline method: use the user means as the prediction."""
+def baseline_user_mean(train, test,verbose=False):
+    """Compute the baseline user mean of the train data
+    Args:
+        train: 
+            the data to be used as input
+        test:
+            the data to be used for measuring the rmse
+    Returns:
+        The user mean of the train data
+    """   
     mse = 0
     count = 0 
     num_items, num_users = train.shape
@@ -98,11 +119,20 @@ def baseline_user_mean(train, test):
                 mse += (test[i,j]-mean_user_elem )**2
                 count+= 1
     rmse = np.sqrt( mse / count )
-    print("Baseline User RMSE on test: ",rmse)
+    if(verbose==True):
+        print("Baseline User RMSE on test: ",rmse)
     return mean_user
 
-def baseline_movie_mean(train, test):
-    """baseline method: use item means as the prediction."""
+def baseline_movie_mean(train, test, verbose=False):
+    """Compute the baseline movie mean of the train data
+    Args:
+        train: 
+            the data to be used as input
+        test:
+            the data to be used for measuring the rmse
+    Returns:
+        The movie mean of the train data
+    """   
     mse = 0
     count = 0 
     num_items, num_users = train.shape
@@ -124,21 +154,16 @@ def baseline_movie_mean(train, test):
                 count+= 1
    
     rmse = np.sqrt( mse / count )
-    print("Baseline Movie RMSE on test: ",rmse)
+    if(verbose==True):
+        print("Baseline Movie RMSE on test: ",rmse)
     return mean_item
 
-def matrix_factorization_SGD(train, test,reg=True):
-    """matrix factorization by SGD."""
-    # define parameters
-    gamma = 0.025
-    num_features = 20   # K in the lecture notes
-    lambda_user = 0.1
-    lambda_item = 0.01
-    num_epochs = 20     # number of full passes through the train set
+def matrix_factorization_SGD(train, test,gamma, num_features,lambda_user,lambda_item,num_epochs,reg=True,verbose=False):
+    """TODO
+    """   
+  
     errors = [0]
     
-    # set seed
-    np.random.seed(988)
 
     # init matrix
     user_features, item_features = init_MF(train, num_features)   #Z0.T,W0
@@ -181,7 +206,8 @@ def matrix_factorization_SGD(train, test,reg=True):
                 user_features[:,n]-= gamma * grad_z
         
         rmse = compute_error(train, user_features, item_features, nz_train)
-        print("iter: {}, RMSE on training set: {}.".format(it, rmse))
+        if(verbose==True):
+            print("iter: {}, RMSE on training set: {}.".format(it, rmse))
         
         errors.append(rmse)
 
@@ -233,18 +259,13 @@ def update_item_feature(
         updated_item_features[:, item] = np.copy(X.T)
     return updated_item_features
 
-def ALS(train, test):
-    """Alternating Least Squares (ALS) algorithm."""
-    # define parameters
-    num_features = 20   # K in the lecture notes
-    lambda_user = 0.081
-    lambda_item = 0.081
-    stop_criterion = 1e-5
+def ALS(train, test,num_features,lambda_user, lambda_item,stop_criterion,verbose=False):
+    """TODO
+    """  
+
     change = 1
     error_list = [0, 0]
     
-    # set seed
-    np.random.seed(988)
 
     # init ALS
     user_features, item_features = init_MF(train, num_features)
@@ -267,7 +288,10 @@ def ALS(train, test):
             nnz_users_per_item, nz_item_userindices)
 
         error = compute_error(train, user_features, item_features, nz_train)
-        print("RMSE on training set: {}.".format(error))
+
+        if(verbose==True):  
+            print("RMSE on training set: {}.".format(error))
+
         error_list.append(error)
         change = np.fabs(error_list[-1] - error_list[-2])
 
