@@ -15,7 +15,7 @@ We use some external libraries in this project which need to be installed manual
 	`conda install -c conda-forge scikit-surprise`
 	
 
-1. Explanation of the main helper functions that you can find in utils.py
+1. Explanation of the main helper functions that you can find in utils.py and features.py
 
     - create_csv_submission(ids, y_pred, name):
 
