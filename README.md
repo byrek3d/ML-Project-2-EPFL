@@ -15,23 +15,23 @@ We use some external libraries in this project which need to be installed manual
 
 1. Explanation of the main helper functions that you can find in utils.py
 
-    create_csv_submission(ids, y_pred, name):
+    -create_csv_submission(ids, y_pred, name):
 
         Create a csv file with the format required by aicrowd
         
-    preprocess(data):
+    -preprocess(data):
         Convert a dataframe of indices of the given aicrowd input format to simple row/column dataframe by stripping down the 'r_' and 'c_' strings and removieng one from the index as to start from 0.
         
-    trainset_from_surprise_to_df(trainset)
+    -trainset_from_surprise_to_df(trainset)
         Create a Dataframe starting from a Surprise data set containing the 'User', 'Movie', 'Rating' columns extracted from the input
     
-    predict_on_model(algo):
+    -predict_on_model(algo):
         Use a single Surprise model to predict on the user/movie indices present on the sample_submission.csv. The predictions are rounded up to the closest integer
 		
     	Returns:
         A list of (row/column) pairs and a list of the prediction in those indices
             
-    predict_on_all_models_and_features_xgb(xgb_model,models, mf_sgd_pair, mf_als_pair, bl_global, bl_movie,bl_user, df_features):
+    -predict_on_all_models_and_features_xgb(xgb_model,models, mf_sgd_pair, mf_als_pair, bl_global, bl_movie,bl_user, df_features):
         Use the provided models and augmented features to predict on the user/movie indices present on the sample_submission.csv and combine the result with the provided weights. The predictions are rounded up to the closest integer
 		
 		Returns:
