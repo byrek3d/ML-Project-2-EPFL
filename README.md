@@ -1,4 +1,5 @@
 
+
 # CS433-Machine Learning Project 2
 
 ### Authors: Gerald Sula - Ridha Chahed - Walid Ben Naceur
@@ -43,26 +44,27 @@ We use some external libraries in this project which need to be installed manual
         A list of (row/column) pairs and a list of the prediction in those indices
         
 		
-TODO: features::
-    replace_word_by_key(tweets,voc):
-        Use the provided models and augmented features to predict on the user/movie indices present on the sample_submission.csv and combine the result with the provided weights. 
-    The predictions are computed in different ways depending on the model/feature.
-    The predictions are rounded up to the closest integer
-    
-    padding(tweets,sequence_length):
-        Add padding to each tweet so that they all have the same length.
-        The tweets here are in numeric forms (one index per word).
-        RETURN: list of tweets that have all the same length.
 
-    process_tweet_test(tweet):
-        taking a tweet, split it in word, remove the \n at the end and then remove all digits, float and punctuation from it. It also               transform the occurences of hahahaha , hahaha into the only haha.
-        Remove the index at the start of each tweet.
-        RETURN: a processed tweet.
-        
-    process_tweets_test(tweets):
-        Taking a list of tweets, processed each tweet using the functions replace_words process_tweet.
-        Return a list of processed tweets.
-        RETURN: a list of processed tweets.
+    - feature_augmentation(sparse_matrix,blending_trainset):
+
+	     Global_Average : Average rating of all the ratings
+      
+	     User_Average : User's Average rating
+     
+	     Movie_Average : Average rating of this movie
+     
+	     Similar users rating of this movie (cosine similarity) :
+	     SimUser1, SimUser2, SimUser3, SimUser4, SimUser5 ( top 5 similar 		users who rated that movie.. ). 
+	     For each similar user need to find the rating that he put for that movie if not available put the average rating of that user as an estimator.
+    
+	     Similar movies rated by this user (cosine similarity):
+	     SimMovie1, SimMovie2, SimMovie3, SimMovie4, SimMovie5 ( top 5 similar movies rated by this user.. )
+	     For each similar movie we need to find the rating that the user has given to it if not available give the similar movie average rating.
+
+	    Return:
+        Two computed dataframes of the features added, one with the 'User', 'Movie' columns, and the other without
+    
+  
     
     create_csv_submission(ids, y_pred, name):
         Creates an output file in csv format for submission to kaggle
@@ -79,45 +81,27 @@ TODO: features::
     When the code has finished running a file named 'submissionBlendedXgbFull.csv' will be created on the same directory
     
 	
-TODO:
-	
-3. Explanation of the different models
 
-    We have created different models during this project.
-    Here we will quickly talk about them and the helper functions associated.
-    
-    model_parameters_cnn():
-        Parameters for the 2 CNN models:
-        num_filters: number of filter in the convolutional layers
-        hidden_dims: dimensions of the dense layer
-        batch_size: size of a batch for training
-        num_epochs: number of epochs for our training
-        filter_sizes: size of our filters in the convolutional layers
-        RETURN: the number of filters, the number of hidden dimensions, the batch_size, the number of epochs and the sizes of the filters.
-        
-    preparation_RNN(y):
-        Take the labels y and replace 0 by [0,1] and 1 by [1,0]
-        RETURN: new labels in binary form.
-    
-    cnn_parallel_init(num_filters, hidden_dims, batch_size, num_epochs, filter_sizes, embedding_dim, sequence_length):
-        Create the CNN model using parallel convolutional blocks.
-        It has two identical blocks of convolutional layers, batchnormalization layers and maxpooling layers.
-        Then it has a flatten layer and two dense layers.
-        RETURN: the compiled model.
-        
-    cnn_sequential_init(num_filters, hidden_dims, batch_size, num_epochs, filter_sizes, embedding_dim, sequence_length):
-        Create the sequential CNN model. 
-        With one embedding layer, two convolutional layers followed by a batchnormalization layer and a maxpooling layer.
-        This is repeated a second time with a smaller number of filters.
-        It has then a flatten layer and three dense layer.
-        RETURN: the compiled model.
-        
-    rnn_init(embedding_dim, sequence_length):
-        Create the RNN model.
-        With one embedding layer, an LSTM layer of size 250 and a dense layer.
-        RETURN: the compiled model.
-        
-    cnn_rnn_init(embedding_dim, sequence_length):
-        Create the combined CNN and RNN model0
-        With one embedding layer, followed by a convolutional layer, a LSTM layer of size 250 and finally a dense layer.
-        RETURN: the compiled model.
+	
+3. Different Models We Use
+
+   
+
+ - SVD
+ - SVD++
+ - KNN (User, Movie)
+ - CoClustering
+ - SlopeOne
+ - Matrix factorisation with SGD
+ - Matrix factorisation with ALS
+ - Baseline (Global, User,Movie)
+ - NMF
+ 
+	 For Blending:
+	 
+	-XGBoost
+	-Least Squares
+	-Logistic Regression
+	-Sequential quadratic programming
+
+For more information and details about the models and how we use them, look at the report.
