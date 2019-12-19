@@ -182,11 +182,8 @@ def predict_on_models(surprise_models, mf_sgd_pair, mf_als_pair, bl_global,df_fe
     
     preds=[]
     ids=[]
-    acc=0
     for i,j in test_indices:
-        acc=acc+1
-        if (acc%10000==0):
-            print(acc)
+
         ids.append("r{0}_c{1}".format(i+1,j+1))
         uid= i
         iid= j
@@ -240,7 +237,7 @@ def predict_on_models(surprise_models, mf_sgd_pair, mf_als_pair, bl_global,df_fe
     return ids, preds
 
 
-def predict_on_models2(models, weights):
+def predict_on_models_logistic(models, weights):
     """
     Use the provided models to predict on the user/movie indices present on the sample_submission.csv and combine the result with the provided weights. The predictions are rounded up to the closest integer
     ----------
@@ -265,11 +262,9 @@ def predict_on_models2(models, weights):
         iid= j
         pred_list=[]
         
-        acc=0
+
         for wclass in weights:
-            acc=acc+1
-            if (acc%1000==0):
-                print(acc)
+
             zippedMW=list(zip(models,wclass))
             pred = 0
             for m,w in zippedMW:
@@ -284,67 +279,6 @@ def predict_on_models2(models, weights):
         preds.append(np.argmax(np.array(pred_list))+1)
     return ids, preds
 
-def predict_on_models_only_xgb(models, xgb_model, mf_sgd_pair, mf_als_pair, bl_global, bl_user, bl_movie):
-    """
-    Use the provided models to predict on the user/movie indices present on the sample_submission.csv. The predictions are weighted using the provided xgboost model. The predictions are rounded up to the closest integer
-    ----------
-    
-    models: list
-       List of models to be used in the prediction
-    xgb_model: xgboost
-       A xgboost ensemble model trained on the provided prediction models
-    Returns:
-        A list of (row/column) pairs and a list of the prediction in those indices
-    """
-    
-    data=read_txt("data/sampleSubmission.csv")
-    test_indices=predict_on_model_line(data[1:])
-
-    
-    preds=[]
-    ids=[]
-    acc=0
-    for i,j in test_indices:
-        acc=acc+1
-        if (acc%100000==0):
-            print(acc)
-        ids.append("r{0}_c{1}".format(i+1,j+1))
-        uid= i
-        iid= j
-        model_preds=[]
-        #Surprise models 
-        for m in models:
-
-            model_preds.append(m.predict(uid,iid).est)# TODO: maybe round here
-        
-        #MFSGD
-        user_sgd, movie_sgd = mf_sgd_pair
-        user_data_sgd = user_sgd[:,i]  
-        movie_data_sgd = movie_sgd[:,j]
-        prediciton_sgd= movie_data_sgd @ user_data_sgd.T
-        model_preds.append(prediciton_sgd)
-        
-        #MFALS
-        user_als, movie_als = mf_sgd_pair
-        user_data_als = user_als[:,i]  
-        movie_data_als = movie_als[:,j]
-        prediciton_als= movie_data_als @ user_data_als.T
-        model_preds.append(prediciton_als)
-        
-        #baseline Global
-        model_preds.append(bl_global)
-        
-        #Baseline User
-        model_preds.append(bl_user[0,i])
-        
-        #Baseline Movie
-        model_preds.append(bl_movie[j,0])
-        
-        df_models = pd.DataFrame(np.reshape(model_preds, (1,-1)), columns = ['dfCC','dfBL','dfSVD','dfSVDpp','dfNMF','dfKNNMovie','dfKNNUser','dfSO','dfMFSGD','dfMFALS','dfBLGlobal','dfBLMovie','dfBLUser'] )
-        res=xgb_model.predict(df_models)
-        preds.append(int(round(res)))
-        
-    return ids, preds
 
 
 def predict_on_models_xgb(models, df_features , xgb_model):
@@ -376,7 +310,7 @@ def predict_on_models_xgb(models, df_features , xgb_model):
         model_preds=[]
         for m in models:
 
-            model_preds.append(m.predict(uid,iid).est)# TODO: maybe round here
+            model_preds.append(m.predict(uid,iid).est)
 
             
         df_models = pd.DataFrame(np.reshape(model_preds, (1,-1)), columns = ['dfCC', 'dfBL', 'dfSVD', 'dfSVDpp', 'dfNMF', 'dfKNNMovie', 'dfKNNUser','dfSO'] )
@@ -386,8 +320,8 @@ def predict_on_models_xgb(models, df_features , xgb_model):
         df_merged=pd.concat([df_models, features_row], axis=1)
         res=xgb_model.predict(df_merged)
         preds.append(res)
-        
-        ##TODO, may want to do the rounding here
+
+
     return ids, preds
 
 def predict_on_all_models_and_features_xgb(xgb_model,models, mf_sgd_pair, mf_als_pair, bl_global, bl_movie,bl_user, df_features):
@@ -424,19 +358,16 @@ def predict_on_all_models_and_features_xgb(xgb_model,models, mf_sgd_pair, mf_als
     
     preds=[]
     ids=[]
-    acc=0
+
     for i,j in test_indices:
-        acc=acc+1
-        if (acc%10000==0):
-            print(acc)
+
         ids.append("r{0}_c{1}".format(i+1,j+1))
         uid= i
         iid= j
         model_preds=[]
         for m in models:
 
-            model_preds.append(m.predict(uid,iid).est)# TODO: maybe round here
-
+            model_preds.append(m.predict(uid,iid).est)
             
 
         
@@ -474,5 +405,4 @@ def predict_on_all_models_and_features_xgb(xgb_model,models, mf_sgd_pair, mf_als
         res=xgb_model.predict(df_merged)
         preds.append(max(1,min(5,int(round(res[0])))))
         
-        ##TODO, may want to do the rounding here
     return ids, preds

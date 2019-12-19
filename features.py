@@ -11,10 +11,28 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 
 def feature_augmentation(sparse_matrix,blending_trainset):
-    """TODO
+    """
+    # Featurizing the trainset
+
+    # Global_Average : Average rating of all the ratings
+    #  
+    # User_Average : User's Average rating
+    # 
+    # Movie_Average : Average rating of this movie
+    # 
+    # Similar users rating of this movie (cosine similarity) :
+    # SimUser1, SimUser2, SimUser3, SimUser4, SimUser5 ( top 5 similar users who rated that movie.. ). 
+    # For each similar user need to find the rating that he put for that movie if not available put the average rating of that user as an estimator.
+    #
+    # Similar movies rated by this user (cosine similarity):
+    # SimMovie1, SimMovie2, SimMovie3, SimMovie4, SimMovie5 ( top 5 similar movies rated by this user.. )
+    # For each similar movie we need to find the rating that the user has given to it if not available give the similar movie average rating.
+
+    Return:
+        Two computed dataframes of the features added, one with the 'User', 'Movie' columns, and the other without
+
     """  
 
-    print("The training matrix shape is : (user, movie) : ",sparse_matrix.shape)
 
     users, movies = sparse_matrix.shape
     elem = sparse_matrix.count_nonzero()
@@ -125,20 +143,6 @@ def feature_augmentation(sparse_matrix,blending_trainset):
         top_movies = np.argsort((simil))[::-1][1:top+1]
         movie_simil_matrix.append(top_movies)
 
-
-    # ### Featurizing the trainset
-
-    # Global_Average : Average rating of all the ratings
-    #  
-    # User_Average : User's Average rating
-    # 
-    # Movie_Average : Average rating of this movie
-    # 
-    # Similar users rating of this movie:
-    # SimUser1, SimUser2, SimUser3, SimUser4, SimUser5 ( top 5 similar users who rated that movie.. )
-    # 
-    # Similar movies rated by this user:
-    # SimMovie1, SimMovie2, SimMovie3, SimMovie4, SimMovie5 ( top 5 similar movies rated by this user.. )
 
 
 

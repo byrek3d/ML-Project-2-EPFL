@@ -3,12 +3,10 @@
 
 import numpy as np
 import scipy.sparse as sp
-from helpers import build_index_groups, calculate_mse
 import random, copy
 
-np.random.seed(988)
 
-def split_data(ratings, p_test=0.1):
+def split_data(ratings, p_test=0.1, verbose=False):
     """split the ratings to training data and test data.
     Args:
         ratings: 
@@ -37,9 +35,9 @@ def split_data(ratings, p_test=0.1):
         # add to test set
         for s in selects:
             test[s, user] = ratings[s, user]
-    
-    print("Total number of nonzero elements in train data:{v}".format(v=train.nnz))
-    print("Total number of nonzero elements in test data:{v}".format(v=test.nnz))
+    if(verbose==True):
+        print("Total number of nonzero elements in train data:{v}".format(v=train.nnz))
+        print("Total number of nonzero elements in test data:{v}".format(v=test.nnz))
     return  train, test
 
 def init_MF(train, num_features):
@@ -65,6 +63,20 @@ def compute_error(data, user_features, item_features, nz):
     
     return np.sqrt(mse / len(nz))
 
+def build_index_groups(train):
+    """build groups for nnz rows and cols."""
+    nz_row, nz_col = train.nonzero()
+    nz_train = list(zip(nz_row, nz_col))
+
+    grouped_nz_train_byrow = group_by(nz_train, index=0)
+    nz_row_colindices = [(g, np.array([v[1] for v in value]))
+                         for g, value in grouped_nz_train_byrow]
+
+    grouped_nz_train_bycol = group_by(nz_train, index=1)
+    nz_col_rowindices = [(g, np.array([v[0] for v in value]))
+                         for g, value in grouped_nz_train_bycol]
+    return nz_train, nz_row_colindices, nz_col_rowindices
+
 def baseline_global_mean(train, test, verbose=False):
     """Compute the baseline global mean of the train data
     Args:
@@ -88,6 +100,11 @@ def baseline_global_mean(train, test, verbose=False):
         print("Baseline global RMSE on test: ", rmse[0,0])
     
     return global_mean_train
+
+def calculate_mse(real_label, prediction):
+    """calculate MSE."""
+    t = real_label - prediction
+    return 1.0 * t.dot(t.T)
 
 def baseline_user_mean(train, test,verbose=False):
     """Compute the baseline user mean of the train data
@@ -212,7 +229,8 @@ def matrix_factorization_SGD(train, test,gamma, num_features,lambda_user,lambda_
         errors.append(rmse)
 
     rmse = compute_error(test, user_features, item_features, nz_test)
-    print("RMSE on test data: {}.".format(rmse))
+    if(verbose==True):  
+        print("RMSE on test data: {}.".format(rmse))
     
     return user_features, item_features
 
@@ -299,5 +317,6 @@ def ALS(train, test,num_features,lambda_user, lambda_item,stop_criterion,verbose
     nnz_row, nnz_col = test.nonzero()
     nnz_test = list(zip(nnz_row, nnz_col))
     rmse = compute_error(test, user_features, item_features, nnz_test)
-    print("test RMSE after running ALS: {v}.".format(v=rmse))
+    if(verbose==True):  
+        print("test RMSE after running ALS: {v}.".format(v=rmse))
     return user_features, item_features
